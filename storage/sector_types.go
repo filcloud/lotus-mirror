@@ -74,6 +74,8 @@ type SectorInfo struct {
 
 	// Debug
 	LastErr string
+
+	WorkerDir string
 }
 
 func (t *SectorInfo) upd() *sectorUpdate {

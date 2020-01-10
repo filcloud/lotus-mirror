@@ -101,6 +101,7 @@ func (m *Miner) Run(ctx context.Context) error {
 		sb:     m.sb,
 		actor:  m.maddr,
 		worker: m.worker,
+		miner:  m,
 	}
 
 	go fps.run(ctx)
@@ -145,10 +146,11 @@ func (m *Miner) runPreflightChecks(ctx context.Context) error {
 
 type SectorBuilderEpp struct {
 	sb *sectorbuilder.SectorBuilder
+	miner *Miner
 }
 
-func NewElectionPoStProver(sb *sectorbuilder.SectorBuilder) *SectorBuilderEpp {
-	return &SectorBuilderEpp{sb}
+func NewElectionPoStProver(sb *sectorbuilder.SectorBuilder, miner *Miner) *SectorBuilderEpp {
+	return &SectorBuilderEpp{sb, miner}
 }
 
 var _ gen.ElectionPoStProver = (*SectorBuilderEpp)(nil)
@@ -156,6 +158,11 @@ var _ gen.ElectionPoStProver = (*SectorBuilderEpp)(nil)
 func (epp *SectorBuilderEpp) GenerateCandidates(ctx context.Context, ssi sectorbuilder.SortedPublicSectorInfo, rand []byte) ([]sectorbuilder.EPostCandidate, error) {
 	start := time.Now()
 	var faults []uint64 // TODO
+
+	err := epp.miner.filWorkerDirForSectors(ssi)
+	if err != nil {
+		return nil, err
+	}
 
 	var randbuf [32]byte
 	copy(randbuf[:], rand)
@@ -173,10 +180,27 @@ func (epp *SectorBuilderEpp) ComputeProof(ctx context.Context, ssi sectorbuilder
 		return []byte("valid proof"), nil
 	}
 	start := time.Now()
+
+	err := epp.miner.filWorkerDirForSectors(ssi)
+	if err != nil {
+		return nil, err
+	}
+
 	proof, err := epp.sb.ComputeElectionPoSt(ssi, rand, winners)
 	if err != nil {
 		return nil, err
 	}
 	log.Infof("ComputeElectionPost took %s", time.Since(start))
 	return proof, nil
+}
+
+func (m *Miner) filWorkerDirForSectors(ssi sectorbuilder.SortedPublicSectorInfo) error {
+	for _, s := range ssi.Values() {
+		sector, err := m.GetSectorInfo(s.SectorID)
+		if err != nil {
+			return err
+		}
+		s.WorkerDir = sector.WorkerDir
+	}
+	return nil
 }

@@ -33,6 +33,8 @@ type fpostScheduler struct {
 
 	failed uint64 // eps
 	failLk sync.Mutex
+
+	miner *Miner
 }
 
 func (s *fpostScheduler) run(ctx context.Context) {

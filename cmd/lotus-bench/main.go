@@ -206,7 +206,7 @@ func main() {
 				}
 
 				log.Info("Generating PoRep for sector")
-				proof, err := sb.SealCommit(i, ticket, seed, pieces, pco)
+				proof, _, err := sb.SealCommit(i, ticket, seed, pieces, pco)
 				if err != nil {
 					return err
 				}
