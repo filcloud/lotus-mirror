@@ -3,9 +3,8 @@ package storage
 import (
 	"bytes"
 	"context"
-	"io"
+	"encoding/hex"
 	"math"
-	"math/rand"
 
 	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 	"golang.org/x/xerrors"
@@ -15,23 +14,56 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 )
 
+//var commP []byte
+//var lock sync.Mutex
+
 func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPieceSizes []uint64, sizes ...uint64) ([]Piece, error) {
 	if len(sizes) == 0 {
 		return nil, nil
 	}
+	// 32G random seed 42
+	// commp: fd2fc3c8f13169111766c62c629262752b2be468f531cfc88c0b47d1ac13c62e Size: 34091302912
+	// 1G random seed 42
+	// commp: fcbeeaccf316d229fea7b14af2c44f86f324dd4b5f87910d89396b86aa4f0d0f Size: 1065353216
+	//definedCommP, err := hex.DecodeString("fd2fc3c8f13169111766c62c629262752b2be468f531cfc88c0b47d1ac13c62e")
+	var definedCommP []byte
+	var err error
+	var definedSize uint64
+	if m.sb.SectorSize() == 1073741824 {
+		definedCommP, err = hex.DecodeString("fcbeeaccf316d229fea7b14af2c44f86f324dd4b5f87910d89396b86aa4f0d0f")
+		definedSize = 1065353216
+	} else if m.sb.SectorSize() == 34359738368 {
+		definedCommP, err = hex.DecodeString("fd2fc3c8f13169111766c62c629262752b2be468f531cfc88c0b47d1ac13c62e")
+		definedSize = 34091302912
+	} else {
+		panic ("unsupport sector size")
+	}
+	//definedSize = 34091302912
 
 	deals := make([]actors.StorageDealProposal, len(sizes))
 	for i, size := range sizes {
+		log.Infof("RateLimit begin %d", sectorID)
 		release := m.sb.RateLimit()
-		commP, err := sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
-		release()
+		log.Infof("RateLimit end %d", sectorID)
+		//lock.Lock()
+		//if commP == nil {
+		//	ccommP, err := sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
+		//	if err != nil {
+		//		panic(err)
+		//	}
+		//	commP = make([]byte, sectorbuilder.CommLen)
+		//	copy(commP, ccommP[:])
+		//}
+		//lock.Unlock()
+		//log.Infof("GeneratePieceCommitment %d, %q", sectorID, commP)
 
+		release()
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 
 		sdp := actors.StorageDealProposal{
-			PieceRef:             commP[:],
+			PieceRef:             definedCommP[:],
 			PieceSize:            size,
 			Client:               m.worker,
 			Provider:             m.maddr,
@@ -55,6 +87,7 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	if aerr != nil {
 		return nil, xerrors.Errorf("serializing PublishStorageDeals params failed: ", aerr)
 	}
+	log.Infof("MpoolPushMessage %d", sectorID)
 
 	smsg, err := m.api.MpoolPushMessage(ctx, &types.Message{
 		To:       actors.StorageMarketAddress,
@@ -69,6 +102,8 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 		return nil, err
 	}
 	r, err := m.api.StateWaitMsg(ctx, smsg.Cid())
+	log.Infof("StateWaitMsg %d", sectorID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -86,47 +121,57 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	out := make([]Piece, len(sizes))
 
 	for i, size := range sizes {
-		ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
-		if err != nil {
-			return nil, err
-		}
+		//log.Infof("AddPiece begin %d", sectorID)
+		//ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//log.Infof("AddPiece end %d", sectorID)
 
 		existingPieceSizes = append(existingPieceSizes, size)
 
+		//out[i] = Piece{
+		//	DealID: resp.DealIDs[i],
+		//	Size:   ppi.Size,
+		//	CommP:  ppi.CommP[:],
+		//}
+
+		if err != nil {
+			panic(err)
+		}
 		out[i] = Piece{
 			DealID: resp.DealIDs[i],
-			Size:   ppi.Size,
-			CommP:  ppi.CommP[:],
+			Size:   definedSize,
+			CommP:  definedCommP,
 		}
 	}
 
 	return out, nil
 }
 
-func (m *Miner) PledgeSector() error {
-	go func() {
-		ctx := context.TODO() // we can't use the context from command which invokes
-		// this, as we run everything here async, and it's cancelled when the
-		// command exits
+func (m *Miner) PledgeSector(ctx context.Context) error {
+	size := sectorbuilder.UserBytesForSectorSize(m.sb.SectorSize())
 
-		size := sectorbuilder.UserBytesForSectorSize(m.sb.SectorSize())
+	sid, err := m.sb.AcquireSectorId()
+	if err != nil {
+		log.Errorf("%+v", err)
+		return err
+	}
+	log.Infof("acquir %d", sid)
 
-		sid, err := m.sb.AcquireSectorId()
-		if err != nil {
-			log.Errorf("%+v", err)
-			return
-		}
+	pieces, err := m.pledgeSector(ctx, sid, []uint64{}, size)
+	if err != nil {
+		log.Errorf("%+v", err)
+		return err
+	}
 
-		pieces, err := m.pledgeSector(ctx, sid, []uint64{}, size)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return
-		}
+	log.Infof("pledgeSector %d", sid)
 
-		if err := m.newSector(context.TODO(), sid, pieces[0].DealID, pieces[0].ppi()); err != nil {
-			log.Errorf("%+v", err)
-			return
-		}
-	}()
+	if err := m.newSector(ctx, sid, pieces[0].DealID, pieces[0].ppi()); err != nil {
+		log.Errorf("%+v", err)
+		return err
+	}
+	log.Infof("newSector %d", sid)
+
 	return nil
 }

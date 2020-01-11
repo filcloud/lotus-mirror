@@ -530,6 +530,8 @@ func IsRoundWinner(ctx context.Context, ts *types.TipSet, round int64, miner add
 	for _, c := range candidates {
 		if types.IsTicketWinner(c.PartialTicket[:], ssize, uint64(len(sinfos)), pow.TotalPower) {
 			winners = append(winners, c)
+			log.Infof("break in candidates loop")
+			break
 		}
 	}
 

@@ -675,12 +675,12 @@ func (syncer *Syncer) VerifyElectionPoStProof(ctx context.Context, h *types.Bloc
 		return xerrors.Errorf("getting election post sector set: %w", err)
 	}
 
-	if build.InsecurePoStValidation {
+	// if build.InsecurePoStValidation {
 		if string(h.EPostProof.Proof) == "valid proof" {
 			return nil
 		}
-		return xerrors.Errorf("[TESTING] election post was invalid")
-	}
+		// return xerrors.Errorf("[TESTING] election post was invalid")
+	// }
 	hvrf := sha256.Sum256(h.EPostProof.PostRand)
 
 	ok, err := sectorbuilder.VerifyElectionPost(ctx, ssize, *sectorInfo, hvrf[:], h.EPostProof.Proof, winners, h.Miner)

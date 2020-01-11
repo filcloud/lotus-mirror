@@ -111,6 +111,10 @@ func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h 
 	return sm, nil
 }
 
+func PledgeSectorMode() (storage.PledgeSectorMode, error) {
+	return storage.PledgeSectorModeClose, nil
+}
+
 func HandleRetrieval(host host.Host, lc fx.Lifecycle, m *retrieval.Miner) {
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {

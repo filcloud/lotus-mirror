@@ -46,6 +46,15 @@ type Miner struct {
 	stopped        chan struct{}
 }
 
+type PledgeSectorMode string
+
+const (
+	PledgeSectorModeClose PledgeSectorMode = "close"
+	PledgeSectorModeAll PledgeSectorMode = "all"
+	PledgeSectorModeRemote PledgeSectorMode = "remote"
+	PledgeSectorModeLocal PledgeSectorMode = "local"
+)
+
 type storageMinerApi interface {
 	// Call a read only method on actors (no interaction with the chain required)
 	StateCall(ctx context.Context, msg *types.Message, ts *types.TipSet) (*types.MessageReceipt, error)
