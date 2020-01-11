@@ -2,3 +2,7 @@
 	path = extern/filecoin-ffi
 	url = ../filecoin-ffi.git
 	branch = filcloud
+[submodule "extern/go-sectorbuilder"]
+	path = extern/go-sectorbuilder
+	url = ../go-sectorbuilder.git
+	branch = filcloud
