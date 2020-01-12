@@ -368,7 +368,7 @@ func storageMinerInit(ctx context.Context, cctx *cli.Context, api lapi.FullNode,
 			if err != nil {
 				return xerrors.Errorf("failed to set up sectorbuilder for genesis mining: %w", err)
 			}
-			epp := storage.NewElectionPoStProver(sb, nil)
+			epp := storage.NewElectionPoStProver(sb)
 
 			m := miner.NewMiner(api, epp)
 			{
