@@ -43,6 +43,11 @@ func main() {
 				EnvVars: []string{"LOTUS_STORAGE_PATH"},
 				Value:   "~/.lotusstorage", // TODO: Consider XDG_DATA_HOME
 			},
+			&cli.StringFlag{
+				Name:    "mysshaddr",
+				EnvVars: []string{"MY_SSH_ADDR"},
+				Value:   "",
+			},
 			&cli.BoolFlag{
 				Name:  "enable-gpu-proving",
 				Usage: "enable use of GPU for mining operations",
@@ -93,6 +98,11 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		mysshaddr, err := homedir.Expand(cctx.String("mysshaddr"))
+		if err != nil {
+			return err
+		}
+
 		v, err := nodeApi.Version(ctx)
 		if err != nil {
 			return err
@@ -106,6 +116,6 @@ var runCmd = &cli.Command{
 			log.Warn("Shutting down..")
 		}()
 
-		return acceptJobs(ctx, nodeApi, "http://"+storageAddr, ainfo.AuthHeader(), r, cctx.Bool("no-precommit"), cctx.Bool("no-commit"))
+		return acceptJobs(ctx, nodeApi, "http://"+storageAddr, ainfo.AuthHeader(), mysshaddr, r, cctx.Bool("no-precommit"), cctx.Bool("no-commit"))
 	},
 }

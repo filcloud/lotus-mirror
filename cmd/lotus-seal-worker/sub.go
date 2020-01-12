@@ -24,7 +24,7 @@ type worker struct {
 	sb *sectorbuilder.SectorBuilder
 }
 
-func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, auth http.Header, repo string, noprecommit, nocommit bool) error {
+func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, auth http.Header, mysshaddr string, repo string, noprecommit, nocommit bool) error {
 	act, err := api.ActorAddress(ctx)
 	if err != nil {
 		return err
@@ -56,16 +56,20 @@ func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, aut
 		sb:            sb,
 	}
 
-	myIP, err := getMyIP()
-	if err != nil {
-		return err
+	// if my ssh address is not provided
+	if len(mysshaddr) == 0 {
+		myIP, err := getMyIP()
+		if err != nil {
+			return err
+		}
+		mysshaddr = myIP.String()
 	}
 
 	tasks, err := api.WorkerQueue(ctx, sectorbuilder.WorkerCfg{
 		NoPreCommit: noprecommit,
 		NoCommit:    nocommit,
 		Directory: 	 repo,
-		IPAddress:   myIP.String(),
+		IPAddress:   mysshaddr,
 	})
 	if err != nil {
 		return err
