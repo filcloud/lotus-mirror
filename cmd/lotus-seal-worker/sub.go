@@ -24,7 +24,7 @@ type worker struct {
 	sb *sectorbuilder.SectorBuilder
 }
 
-func acceptJobs(ctx context.Context, api lapi.StorageMiner, mysshaddr string, endpoint string, auth http.Header, repo string, noprecommit, nocommit bool) error {
+func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, auth http.Header, mysshaddr string, repo string, noprecommit, nocommit bool) error {
 	act, err := api.ActorAddress(ctx)
 	if err != nil {
 		return err
