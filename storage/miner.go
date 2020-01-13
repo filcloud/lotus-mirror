@@ -168,9 +168,11 @@ func (epp *SectorBuilderEpp) GenerateCandidates(ctx context.Context, ssi sectorb
 	start := time.Now()
 	var faults []uint64 // TODO
 
-	err := epp.miner.filWorkerDirForSectors(ssi)
-	if err != nil {
-		return nil, err
+	if epp.miner != nil {
+		err := epp.miner.filWorkerDirForSectors(ssi)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var randbuf [32]byte
@@ -190,9 +192,11 @@ func (epp *SectorBuilderEpp) ComputeProof(ctx context.Context, ssi sectorbuilder
 	}
 	start := time.Now()
 
-	err := epp.miner.filWorkerDirForSectors(ssi)
-	if err != nil {
-		return nil, err
+	if epp.miner != nil {
+		err := epp.miner.filWorkerDirForSectors(ssi)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	proof, err := epp.sb.ComputeElectionPoSt(ssi, rand, winners)
