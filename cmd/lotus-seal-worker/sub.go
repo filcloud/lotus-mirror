@@ -24,7 +24,7 @@ type worker struct {
 	sb *sectorbuilder.SectorBuilder
 }
 
-func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, auth http.Header, repo string, noprecommit, nocommit bool) error {
+func acceptJobs(ctx context.Context, api lapi.StorageMiner, mysshaddr string, endpoint string, auth http.Header, repo string, noprecommit, nocommit bool) error {
 	act, err := api.ActorAddress(ctx)
 	if err != nil {
 		return err
@@ -55,17 +55,16 @@ func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, aut
 		repo:          repo,
 		sb:            sb,
 	}
-
-	myIP, err := getMyIP()
-	if err != nil {
-		return err
-	}
+	//myIP, err := getMyIP()
+	//if err != nil {
+	//	return err
+	//}
 
 	tasks, err := api.WorkerQueue(ctx, sectorbuilder.WorkerCfg{
 		NoPreCommit: noprecommit,
 		NoCommit:    nocommit,
 		Directory: 	 repo,
-		IPAddress:   myIP.String(),
+		IPAddress:   mysshaddr,
 	})
 	if err != nil {
 		return err
@@ -146,14 +145,14 @@ func errRes(err error) sectorbuilder.SealRes {
 	return sectorbuilder.SealRes{Err: err.Error(), GoErr: err}
 }
 
-func getMyIP() (net.IP, error) {
+func getMyIP(prefix string) (net.IP, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, err
 	}
 	for _, a := range addrs {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil && strings.HasPrefix(ipnet.IP.String(), "192.168.") {
+			if ipnet.IP.To4() != nil && strings.HasPrefix(ipnet.IP.String(), prefix) {
 				return ipnet.IP, nil
 			}
 		}

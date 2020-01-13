@@ -43,6 +43,16 @@ func main() {
 				EnvVars: []string{"LOTUS_STORAGE_PATH"},
 				Value:   "~/.lotusstorage", // TODO: Consider XDG_DATA_HOME
 			},
+			&cli.StringFlag{
+				Name:    "sshuser",
+				EnvVars: []string{"SSH_USER"},
+				Value:   "miner",
+			},
+			&cli.StringFlag{
+				Name:    "sshaddrprefix",
+				EnvVars: []string{"SSH_ADDR_PREFIX"},
+				Value:   "192.168.",
+			},
 			&cli.BoolFlag{
 				Name:  "enable-gpu-proving",
 				Usage: "enable use of GPU for mining operations",
@@ -93,6 +103,14 @@ var runCmd = &cli.Command{
 			return err
 		}
 
+		sshuser := cctx.String("sshuser")
+		sshaddrprefix := cctx.String("sshaddrprefix")
+		myIP, err := getMyIP(sshaddrprefix)
+		if err != nil {
+			return err
+		}
+		mysshaddr := sshuser + "@" + myIP.String()
+
 		v, err := nodeApi.Version(ctx)
 		if err != nil {
 			return err
@@ -106,6 +124,6 @@ var runCmd = &cli.Command{
 			log.Warn("Shutting down..")
 		}()
 
-		return acceptJobs(ctx, nodeApi, "http://"+storageAddr, ainfo.AuthHeader(), r, cctx.Bool("no-precommit"), cctx.Bool("no-commit"))
+		return acceptJobs(ctx, nodeApi, "http://"+storageAddr, ainfo.AuthHeader(), mysshaddr, r, cctx.Bool("no-precommit"), cctx.Bool("no-commit"))
 	},
 }
