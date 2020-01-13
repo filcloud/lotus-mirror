@@ -173,13 +173,13 @@ func (m *Miner) handlePreCommitted(ctx context.Context, sector SectorInfo) *sect
 func (m *Miner) handleCommitting(ctx context.Context, sector SectorInfo) *sectorUpdate {
 	log.Info("scheduling seal proof computation...")
 
-	proof, workerDir, err := m.sb.SealCommit(sector.SectorID, sector.Ticket.SB(), sector.Seed.SB(), sector.pieceInfos(), sector.rspco())
+	proof, err := m.sb.SealCommit(sector.SectorID, sector.Ticket.SB(), sector.Seed.SB(), sector.pieceInfos(), sector.rspco())
 	if err != nil {
 		return sector.upd().to(api.SealCommitFailed).error(xerrors.Errorf("computing seal proof failed: %w", err))
 	}
-	if workerDir == "" {
-		panic("empty worker directory")
-	}
+	//if workerDir == "" {
+	//	panic("empty worker directory")
+	//}
 
 	// TODO: Consider splitting states and persist proof for faster recovery
 
@@ -214,7 +214,7 @@ func (m *Miner) handleCommitting(ctx context.Context, sector SectorInfo) *sector
 		mcid := smsg.Cid()
 		info.CommitMessage = &mcid
 		info.Proof = proof
-		info.WorkerDir = workerDir
+		//info.WorkerDir = workerDir
 	})
 }
 
