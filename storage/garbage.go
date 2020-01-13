@@ -25,7 +25,8 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	// commp: fd2fc3c8f13169111766c62c629262752b2be468f531cfc88c0b47d1ac13c62e Size: 34091302912
 	// 1G random seed 42
 	// commp: fcbeeaccf316d229fea7b14af2c44f86f324dd4b5f87910d89396b86aa4f0d0f Size: 1065353216
-	//definedCommP, err := hex.DecodeString("fd2fc3c8f13169111766c62c629262752b2be468f531cfc88c0b47d1ac13c62e")
+	// 1K random seed 42
+	// commp: e82ca92fb3a70854081047b60402050d77288e1e17f46dd8f9deeb40c0df690a Size: 1016
 	var definedCommP []byte
 	var err error
 	var definedSize uint64
@@ -35,8 +36,11 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	} else if m.sb.SectorSize() == 34359738368 {
 		definedCommP, err = hex.DecodeString("fd2fc3c8f13169111766c62c629262752b2be468f531cfc88c0b47d1ac13c62e")
 		definedSize = 34091302912
+	} else if m.sb.SectorSize() == 1024 {
+		definedCommP, err = hex.DecodeString("e82ca92fb3a70854081047b60402050d77288e1e17f46dd8f9deeb40c0df690a")
+		definedSize = 1016
 	} else {
-		panic ("unsupport sector size")
+		panic("unsupport sector size")
 	}
 	//definedSize = 34091302912
 

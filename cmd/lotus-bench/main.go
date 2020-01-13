@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -172,12 +173,14 @@ func main() {
 				start := time.Now()
 				log.Info("Writing piece into sector...")
 
-				r := rand.New(rand.NewSource(100 + int64(i)))
+				r := rand.New(rand.NewSource(42))
 
 				pi, err := sb.AddPiece(dataSize, i, r, nil)
 				if err != nil {
 					return err
 				}
+
+				fmt.Println("commp:", hex.EncodeToString(pi.CommP[:]), " Size:", pi.Size)
 
 				addpiece := time.Now()
 
