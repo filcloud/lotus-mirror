@@ -453,8 +453,10 @@ func (st *StateTree) Version() types.StateTreeVersion {
 	return st.version
 }
 
-func Diff(oldTree, newTree *StateTree) (map[string]types.Actor, error) {
-	out := map[string]types.Actor{}
+func Diff(oldTree, newTree *StateTree) (map[string]types.Actor, map[string]types.Actor, map[string]types.Actor, error) {
+	adds := map[string]types.Actor{}
+	dels := map[string]types.Actor{}
+	changes := map[string]types.Actor{}
 
 	var (
 		ncval, ocval cbg.Deferred
@@ -485,11 +487,45 @@ func Diff(oldTree, newTree *StateTree) (map[string]types.Actor, error) {
 			return err
 		}
 
-		out[addr.String()] = act
+		if found {
+			changes[addr.String()] = act
+		} else {
+			adds[addr.String()] = act
+		}
 
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	return out, nil
+
+	if err := oldTree.root.ForEach(&ocval, func(k string) error {
+		var act types.Actor
+
+		addr, err := address.NewFromBytes([]byte(k))
+		if err != nil {
+			return xerrors.Errorf("address in state tree was not valid: %w", err)
+		}
+
+		found, err := newTree.root.Get(abi.AddrKey(addr), &ncval)
+		if err != nil {
+			return err
+		}
+
+		if found {
+			return nil // not changed
+		}
+
+		buf.Reset(ocval.Raw)
+		err = act.UnmarshalCBOR(buf)
+		buf.Reset(nil)
+		if err != nil {
+			return err
+		}
+
+		dels[addr.String()] = act
+		return nil
+	}); err != nil {
+		return nil, nil, nil, err
+	}
+	return adds, dels, changes, nil
 }

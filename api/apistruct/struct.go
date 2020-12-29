@@ -214,7 +214,7 @@ type FullNodeStruct struct {
 		StateMarketStorageDeal             func(context.Context, abi.DealID, types.TipSetKey) (*api.MarketDeal, error)                                         `perm:"read"`
 		StateLookupID                      func(ctx context.Context, addr address.Address, tsk types.TipSetKey) (address.Address, error)                       `perm:"read"`
 		StateAccountKey                    func(context.Context, address.Address, types.TipSetKey) (address.Address, error)                                    `perm:"read"`
-		StateChangedActors                 func(context.Context, cid.Cid, cid.Cid) (map[string]types.Actor, error)                                             `perm:"read"`
+		StateChangedActors                 func(context.Context, cid.Cid, cid.Cid) (map[string]types.Actor, map[string]types.Actor, map[string]types.Actor, error)                                             `perm:"read"`
 		StateGetReceipt                    func(context.Context, cid.Cid, types.TipSetKey) (*types.MessageReceipt, error)                                      `perm:"read"`
 		StateMinerSectorCount              func(context.Context, address.Address, types.TipSetKey) (api.MinerSectors, error)                                   `perm:"read"`
 		StateListMessages                  func(ctx context.Context, match *api.MessageMatch, tsk types.TipSetKey, toht abi.ChainEpoch) ([]cid.Cid, error)     `perm:"read"`
@@ -1040,7 +1040,7 @@ func (c *FullNodeStruct) StateAccountKey(ctx context.Context, addr address.Addre
 	return c.Internal.StateAccountKey(ctx, addr, tsk)
 }
 
-func (c *FullNodeStruct) StateChangedActors(ctx context.Context, olnstate cid.Cid, newstate cid.Cid) (map[string]types.Actor, error) {
+func (c *FullNodeStruct) StateChangedActors(ctx context.Context, olnstate cid.Cid, newstate cid.Cid) (map[string]types.Actor, map[string]types.Actor, map[string]types.Actor, error) {
 	return c.Internal.StateChangedActors(ctx, olnstate, newstate)
 }
 
