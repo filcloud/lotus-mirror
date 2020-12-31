@@ -1003,6 +1003,87 @@ func (m *StateModule) MsigGetVested(ctx context.Context, addr address.Address, s
 var initialPledgeNum = types.NewInt(110)
 var initialPledgeDen = types.NewInt(100)
 
+func (a *StateAPI) StatePledgeCollateral(ctx context.Context, maddr address.Address, pci miner.SectorPreCommitInfo, tsk types.TipSetKey) (types.BigInt, types.BigInt, error) {
+	ts, err := a.Chain.GetTipSetFromKey(tsk)
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading tipset %s: %w", tsk, err)
+	}
+
+	pstate, err := a.StateManager.ParentState(ts)
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading state %s: %w", tsk, err)
+	}
+
+	ssize, err := pci.SealProof.SectorSize()
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("failed to get resolve size: %w", err)
+	}
+
+	chainStore := a.Chain.Store(ctx)
+
+	var sectorWeight abi.StoragePower
+	if act, err := pstate.GetActor(market.Address); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading miner actor %s: %w", maddr, err)
+	} else if s, err := market.Load(chainStore, act); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading market actor state %s: %w", maddr, err)
+	} else if w, vw, err := s.VerifyDealsForActivation(maddr, pci.DealIDs, ts.Height(), pci.Expiration); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("verifying deals for activation: %w", err)
+	} else {
+		// NB: not exactly accurate, but should always lead us to *over* estimate, not under
+		duration := pci.Expiration - ts.Height()
+		sectorWeight = builtin.QAPowerForWeight(ssize, duration, w, vw)
+	}
+
+	var (
+		powerSmoothed    builtin.FilterEstimate
+		pledgeCollateral abi.TokenAmount
+	)
+	if act, err := pstate.GetActor(power.Address); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading miner actor: %w", err)
+	} else if s, err := power.Load(chainStore, act); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading power actor state: %w", err)
+	} else if p, err := s.TotalPowerSmoothed(); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("failed to determine total power: %w", err)
+	} else if c, err := s.TotalLocked(); err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("failed to determine pledge collateral: %w", err)
+	} else {
+		powerSmoothed = p
+		pledgeCollateral = c
+	}
+
+	rewardActor, err := pstate.GetActor(reward.Address)
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading miner actor: %w", err)
+	}
+
+	rewardState, err := reward.Load(chainStore, rewardActor)
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("loading reward actor state: %w", err)
+	}
+
+	circSupply, err := a.StateVMCirculatingSupplyInternal(ctx, ts.Key())
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("getting circulating supply: %w", err)
+	}
+
+	deposit, err := rewardState.PreCommitDepositForPower(powerSmoothed, sectorWeight)
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("calculating precommit deposit: %w", err)
+	}
+
+	initialPledge, err := rewardState.InitialPledgeForPower(
+		sectorWeight,
+		pledgeCollateral,
+		&powerSmoothed,
+		circSupply.FilCirculating,
+	)
+	if err != nil {
+		return types.EmptyInt, types.EmptyInt, xerrors.Errorf("calculating initial pledge: %w", err)
+	}
+
+	return types.BigDiv(types.BigMul(deposit, initialPledgeNum), initialPledgeDen),	types.BigDiv(types.BigMul(initialPledge, initialPledgeNum), initialPledgeDen), nil
+}
+
 func (a *StateAPI) StateMinerPreCommitDepositForPower(ctx context.Context, maddr address.Address, pci miner.SectorPreCommitInfo, tsk types.TipSetKey) (types.BigInt, error) {
 	ts, err := a.Chain.GetTipSetFromKey(tsk)
 	if err != nil {
