@@ -191,7 +191,7 @@ type FullNodeStruct struct {
 		StateMinerFaults                   func(context.Context, address.Address, types.TipSetKey) (bitfield.BitField, error)                                  `perm:"read"`
 		StateAllMinerFaults                func(context.Context, abi.ChainEpoch, types.TipSetKey) ([]*api.Fault, error)                                        `perm:"read"`
 		StateMinerRecoveries               func(context.Context, address.Address, types.TipSetKey) (bitfield.BitField, error)                                  `perm:"read"`
-		StatePledgeCollateral              func(context.Context, address.Address, miner.SectorPreCommitInfo, types.TipSetKey) (types.BigInt, types.BigInt, error) `perm:"read"`
+		StatePledgeCollateral              func(context.Context, address.Address, miner.SectorPreCommitInfo, types.TipSetKey) (*api.PledgeCollateral, error)   `perm:"read"`
 		StateMinerPreCommitDepositForPower func(context.Context, address.Address, miner.SectorPreCommitInfo, types.TipSetKey) (types.BigInt, error)            `perm:"read"`
 		StateMinerInitialPledgeCollateral  func(context.Context, address.Address, miner.SectorPreCommitInfo, types.TipSetKey) (types.BigInt, error)            `perm:"read"`
 		StateMinerAvailableBalance         func(context.Context, address.Address, types.TipSetKey) (types.BigInt, error)                                       `perm:"read"`
@@ -949,7 +949,7 @@ func (c *FullNodeStruct) StateMinerRecoveries(ctx context.Context, actor address
 	return c.Internal.StateMinerRecoveries(ctx, actor, tsk)
 }
 
-func (c *FullNodeStruct) StatePledgeCollateral(ctx context.Context, maddr address.Address, pci miner.SectorPreCommitInfo, tsk types.TipSetKey) (types.BigInt, types.BigInt, error) {
+func (c *FullNodeStruct) StatePledgeCollateral(ctx context.Context, maddr address.Address, pci miner.SectorPreCommitInfo, tsk types.TipSetKey) (*api.PledgeCollateral, error) {
 	return c.Internal.StatePledgeCollateral(ctx, maddr, pci, tsk)
 }
 

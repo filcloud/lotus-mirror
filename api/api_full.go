@@ -373,7 +373,7 @@ type FullNode interface {
 	StateMinerRecoveries(context.Context, address.Address, types.TipSetKey) (bitfield.BitField, error)
 	// StatePledgeCollateral returns the precommit deposit and initial pledge collateral for the specified miner's sector
 	// TODO: remove StateMinerPreCommitDepositForPower and StateMinerInitialPledgeCollateral if StatePledgeCollateral accepted
-	StatePledgeCollateral(ctx context.Context, maddr address.Address, pci miner.SectorPreCommitInfo, tsk types.TipSetKey) (types.BigInt, types.BigInt, error)
+	StatePledgeCollateral(ctx context.Context, maddr address.Address, pci miner.SectorPreCommitInfo, tsk types.TipSetKey) (*PledgeCollateral, error)
 	// StateMinerPreCommitDepositForPower returns the precommit deposit for the specified miner's sector
 	StateMinerPreCommitDepositForPower(context.Context, address.Address, miner.SectorPreCommitInfo, types.TipSetKey) (types.BigInt, error)
 	// StateMinerInitialPledgeCollateral returns the initial pledge collateral for the specified miner's sector
@@ -678,6 +678,11 @@ type ChannelAvailableFunds struct {
 	// VoucherRedeemedAmt is the amount that is redeemed by vouchers on-chain
 	// and in the local datastore
 	VoucherReedeemedAmt types.BigInt
+}
+
+type PledgeCollateral struct {
+	Deposit       types.BigInt
+	InitialPledge types.BigInt
 }
 
 type PaymentInfo struct {
