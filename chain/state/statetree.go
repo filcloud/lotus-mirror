@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/filecoin-project/lotus/api"
 
 	"github.com/ipfs/go-cid"
 	cbor "github.com/ipfs/go-ipld-cbor"
@@ -453,10 +454,10 @@ func (st *StateTree) Version() types.StateTreeVersion {
 	return st.version
 }
 
-func Diff(oldTree, newTree *StateTree) (map[string]types.Actor, map[string]types.Actor, map[string]types.Actor, error) {
-	adds := map[string]types.Actor{}
-	dels := map[string]types.Actor{}
-	changes := map[string]types.Actor{}
+func Diff(oldTree, newTree *StateTree) (*api.ChangedActors, error) {
+	adds := make(map[string]types.Actor)
+	deletes := make(map[string]types.Actor)
+	changes := make(map[string]types.Actor)
 
 	var (
 		ncval, ocval cbg.Deferred
@@ -495,7 +496,7 @@ func Diff(oldTree, newTree *StateTree) (map[string]types.Actor, map[string]types
 
 		return nil
 	}); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	if err := oldTree.root.ForEach(&ocval, func(k string) error {
@@ -522,10 +523,14 @@ func Diff(oldTree, newTree *StateTree) (map[string]types.Actor, map[string]types
 			return err
 		}
 
-		dels[addr.String()] = act
+		deletes[addr.String()] = act
 		return nil
 	}); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	return adds, dels, changes, nil
+	return &api.ChangedActors{
+		Adds:    adds,
+		Deletes: deletes,
+		Changes: changes,
+	}, nil
 }

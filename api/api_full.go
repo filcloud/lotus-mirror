@@ -416,7 +416,7 @@ type FullNode interface {
 	StateAccountKey(context.Context, address.Address, types.TipSetKey) (address.Address, error)
 	// StateChangedActors returns all the actors whose states change between the two given state CIDs
 	// TODO: Should this take tipset keys instead?
-	StateChangedActors(context.Context, cid.Cid, cid.Cid) (map[string]types.Actor, map[string]types.Actor, map[string]types.Actor, error)
+	StateChangedActors(context.Context, cid.Cid, cid.Cid) (*ChangedActors, error)
 	// StateGetReceipt returns the message receipt for the given message
 	StateGetReceipt(context.Context, cid.Cid, types.TipSetKey) (*types.MessageReceipt, error)
 	// StateMinerSectorCount returns the number of sectors in a miner's sector set and proving set
@@ -974,4 +974,10 @@ type MsigVesting struct {
 type MessageMatch struct {
 	To   address.Address
 	From address.Address
+}
+
+type ChangedActors struct {
+	Adds    map[string]types.Actor
+	Deletes map[string]types.Actor
+	Changes map[string]types.Actor
 }

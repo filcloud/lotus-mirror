@@ -727,17 +727,17 @@ func (m *StateModule) StateMarketStorageDeal(ctx context.Context, dealId abi.Dea
 	return stmgr.GetStorageDeal(ctx, m.StateManager, dealId, ts)
 }
 
-func (a *StateAPI) StateChangedActors(ctx context.Context, old cid.Cid, new cid.Cid) (map[string]types.Actor, map[string]types.Actor, map[string]types.Actor, error) {
+func (a *StateAPI) StateChangedActors(ctx context.Context, old cid.Cid, new cid.Cid) (*api.ChangedActors, error) {
 	store := a.Chain.Store(ctx)
 
 	oldTree, err := state.LoadStateTree(store, old)
 	if err != nil {
-		return nil, nil, nil, xerrors.Errorf("failed to load old state tree: %w", err)
+		return nil, xerrors.Errorf("failed to load old state tree: %w", err)
 	}
 
 	newTree, err := state.LoadStateTree(store, new)
 	if err != nil {
-		return nil, nil, nil, xerrors.Errorf("failed to load new state tree: %w", err)
+		return nil, xerrors.Errorf("failed to load new state tree: %w", err)
 	}
 
 	return state.Diff(oldTree, newTree)

@@ -230,9 +230,7 @@ func (p *Processor) collectActorChanges(ctx context.Context, toProcess map[cid.C
 	var outMu sync.Mutex
 
 	// map of addresses to changed actors
-	var adds map[string]types.Actor
-	var dels map[string]types.Actor
-	var changes map[string]types.Actor
+	var changedActors *api.ChangedActors
 	actorsSeen := map[cid.Cid]struct{}{}
 
 	var nullRounds []types.TipSetKey
@@ -261,7 +259,7 @@ func (p *Processor) collectActorChanges(ctx context.Context, toProcess map[cid.C
 		// collect all actors that had state changes between the blockheader parent-state and its grandparent-state.
 		// TODO: changes will contain deleted actors, this causes needless processing further down the pipeline, consider
 		// a separate strategy for deleted actors
-		adds, dels, changes, err = p.node.StateChangedActors(ctx, pts.ParentState(), bh.ParentStateRoot)
+		changedActors, err = p.node.StateChangedActors(ctx, pts.ParentState(), bh.ParentStateRoot)
 		if err != nil {
 			log.Error(err)
 			log.Debugw("StateChangedActors", "grandparent_state", pts.ParentState(), "parent_state", bh.ParentStateRoot)
@@ -270,7 +268,7 @@ func (p *Processor) collectActorChanges(ctx context.Context, toProcess map[cid.C
 
 		// record the state of all actors that have changed
 		// TODO need to process deleted actors - dels
-		for _, actors := range []map[string]types.Actor{adds, changes} {
+		for _, actors := range []map[string]types.Actor{changedActors.Adds, changedActors.Changes} {
 			for a, act := range actors {
 				act := act
 				a := a
